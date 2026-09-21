@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoleDuel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- LOBBY -->
+  <section id="screen-lobby" class="screen active">
+    <div class="lobby-card">
+      <div class="brand">
+        <span class="brand-icon">👟</span>
+        <h1>SoleDuel</h1>
+        <p class="tagline">Call it right. Call your color. Take their kicks.</p>
+      </div>
+
+      <div class="tabs">
+        <button id="tab-create" class="tab active">New Game</button>
+        <button id="tab-join" class="tab">Join Game</button>
+      </div>
+
+      <div id="panel-create" class="panel">
+        <label class="field-label" for="name-create">Your name</label>
+        <input id="name-create" type="text" maxlength="18" placeholder="e.g. Jordan" autocomplete="off">
+        <button id="btn-create-game" class="btn btn-primary">Create game</button>
+        <p class="panel-note">You'll get a code to send your opponent.</p>
+      </div>
+
+      <div id="panel-join" class="panel hidden">
+        <label class="field-label" for="name-join">Your name</label>
+        <input id="name-join" type="text" maxlength="18" placeholder="e.g. Sam" autocomplete="off">
+        <label class="field-label" for="code-join">Game code</label>
+        <input id="code-join" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
+        <button id="btn-join-game" class="btn btn-primary">Join game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITING ROOM -->
+  <section id="screen-waiting" class="screen">
+    <div class="lobby-card">
+      <p class="field-label">Your game code</p>
+      <div class="code-display" id="waiting-code">-----</div>
+      <button id="btn-copy-code" class="btn btn-secondary">Copy code</button>
+      <div class="waiting-spinner"></div>
+      <p class="panel-note">Waiting for an opponent to join…</p>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+    <header class="game-header">
+      <div class="brand-small"><span class="brand-icon">👟</span> SoleDuel</div>
+      <div class="code-badge" id="game-code-badge">-----</div>
+    </header>
+
+    <div class="shelves">
+      <div class="shelf-block">
+        <h2 class="shelf-title" id="my-name">You</h2>
+        <div class="shelf" id="my-shelf"></div>
+      </div>
+      <div class="shelf-block">
+        <h2 class="shelf-title" id="opp-name">Opponent</h2>
+        <div class="shelf" id="opp-shelf"></div>
+      </div>
+    </div>
+
+    <div class="duel-area">
+      <p class="turn-indicator" id="turn-indicator">—</p>
+      <div class="duel-panel" id="duel-panel"></div>
+    </div>
+
+    <div class="log-block">
+      <h3 class="log-title">Duel history</h3>
+      <div class="duel-log" id="duel-log"></div>
+    </div>
+  </section>
+
+  <!-- WINNER OVERLAY -->
+  <div id="winner-overlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-icon">🏆</div>
+      <h2>Match over</h2>
+      <p id="winner-text"></p>
+      <button id="btn-play-again" class="btn btn-primary">Start a new match</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shoes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
