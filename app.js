@@ -1,56 +1,13 @@
-// app.js — SoleDuel game logic.
+// app.js — SoleDuel duel-mode game logic.
+// Shared setup (Firebase, $, showScreen, showToast, randomCode) lives in
+// firebase-init.js and shared.js, loaded before this file.
 
-// ---------- Firebase setup ----------
-firebase.initializeApp(FIREBASE_CONFIG);
-const auth = firebase.auth();
-const db = firebase.database();
-
-let myUid = null;
 let myName = '';
 let gameCode = null;
 let gameRef = null;
 let lastPhaseSeen = null;
 
-// ---------- DOM ----------
-const $ = (sel) => document.querySelector(sel);
-const screens = {
-  lobby: $('#screen-lobby'),
-  waiting: $('#screen-waiting'),
-  game: $('#screen-game'),
-};
-
-function showScreen(name) {
-  Object.values(screens).forEach(s => s.classList.remove('active'));
-  screens[name].classList.add('active');
-}
-
-function showToast(msg) {
-  const toast = $('#toast');
-  toast.textContent = msg;
-  toast.classList.remove('hidden');
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => toast.classList.add('hidden'), 3200);
-}
-
-// ---------- Auth ----------
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    myUid = user.uid;
-  }
-});
-auth.signInAnonymously().catch((err) => {
-  console.error(err);
-  showToast("Couldn't connect — check your Firebase config in firebase-config.js");
-});
-
 // ---------- Lobby ----------
-function randomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid mixups
-  let code = '';
-  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
 $('#tab-create').addEventListener('click', () => switchTab('create'));
 $('#tab-join').addEventListener('click', () => switchTab('join'));
 function switchTab(which) {
@@ -161,12 +118,12 @@ function render(data) {
   const uids = Object.keys(players);
 
   if (data.status === 'waiting') {
-    showScreen('waiting');
+    showScreen('screen-waiting');
     return;
   }
   if (data.status !== 'playing' && data.status !== 'finished') return;
 
-  showScreen('game');
+  showScreen('screen-game');
 
   const opponentUid = uids.find(u => u !== myUid);
   const me = players[myUid];
