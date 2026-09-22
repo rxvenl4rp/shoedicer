@@ -405,3 +405,175 @@ button:focus-visible, input:focus-visible {
   .brand h1 { font-size: 34px; }
   .code-display { font-size: 36px; }
 }
+
+/* ---------- Mode select ---------- */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 2px solid var(--ink-line);
+  background: transparent;
+  color: #6B5D40;
+  font-family: 'Anton', sans-serif;
+  font-size: 14px;
+}
+.mode-tab.active { background: var(--ink); color: var(--text-hi); border-color: var(--ink); }
+
+.tagline-track { color: #8E3DBF; font-weight: 700; }
+
+/* ---------- Brainrot Track theme ---------- */
+.brainrot-brand {
+  color: #39FF14;
+  text-shadow: 0 0 6px rgba(57,255,20,0.7), 2px 2px 0 #FF2EC4;
+  letter-spacing: 0.02em;
+}
+.track-timer {
+  font-family: 'Anton', sans-serif;
+  font-size: 20px;
+  color: #FFF200;
+  text-shadow: 0 0 8px rgba(255,242,0,0.8);
+}
+
+.track-lobby-card { text-align: center; }
+.track-player-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+.track-player-chip {
+  background: var(--kraft-2);
+  color: var(--text-ink);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.track-player-chip.me { background: var(--accent); color: #fff; }
+.track-player-chip.empty {
+  background: transparent;
+  border: 1.5px dashed var(--ink-line);
+  color: #9C8C63;
+}
+
+.track-belt-wrap {
+  background: #0B0014;
+  border: 2px solid #FF2EC4;
+  border-radius: 16px;
+  padding: 14px 0;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 22px rgba(255,46,196,0.35) inset;
+}
+.track-belt {
+  position: relative;
+  height: 88px;
+}
+.belt-shoe {
+  position: absolute;
+  top: 12px;
+  left: 100%;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  border: 3px solid #B9AC8E;
+  background: var(--kraft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  padding: 0;
+  cursor: pointer;
+  animation-name: beltmove;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.belt-shoe[data-rarity="rare"] { border-color: #3D7DFF; box-shadow: 0 0 8px rgba(61,125,255,0.6); }
+.belt-shoe[data-rarity="epic"] { border-color: #9B5DE5; box-shadow: 0 0 10px rgba(155,93,229,0.7); }
+.belt-shoe[data-rarity="legendary"] { border-color: #FFC93C; box-shadow: 0 0 16px rgba(255,201,60,0.9); }
+.belt-shoe.grabbed { opacity: 0.25; cursor: default; }
+.belt-shoe.grabbed-mine { opacity: 0; transform: scale(1.5); transition: all 0.25s ease; }
+
+@keyframes beltmove {
+  from { left: 100%; }
+  to { left: -80px; }
+}
+
+.track-leaderboard {
+  background: #1B1E2B;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.leaderboard-row:last-child { border-bottom: none; }
+.leaderboard-row.me { color: var(--accent); font-weight: 700; }
+.leaderboard-row.winner { color: #FFC93C; font-weight: 700; }
+.lb-rank { width: 28px; opacity: 0.7; }
+.lb-name { flex: 1; }
+
+.track-final-list { margin: 10px 0 4px; text-align: left; }
+
+@media (prefers-reduced-motion: reduce) {
+  .belt-shoe { animation: none; left: 20px; }
+}
+
+/* ---------- Floating name box (Brainrot Track) ---------- */
+.track-name-box {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 40;
+  background: var(--kraft);
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.track-name-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6B5D40;
+  font-weight: 700;
+}
+.track-name-box input {
+  border: none;
+  background: transparent;
+  color: var(--text-ink);
+  font-size: 14px;
+  font-weight: 700;
+  width: 110px;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.track-name-box input:focus {
+  outline: 2px solid var(--accent);
+  background: #FBF6EB;
+}
+
+/* ---------- Link-style button (join a different track) ---------- */
+.link-btn {
+  background: none;
+  border: none;
+  color: #6B5D40;
+  text-decoration: underline;
+  font-size: 13px;
+  font-family: inherit;
+  margin-top: 16px;
+  padding: 4px;
+}
