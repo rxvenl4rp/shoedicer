@@ -12,6 +12,12 @@
 
 <div id="app">
 
+  <!-- FLOATING NAME BOX (Brainrot Track only) -->
+  <div id="track-name-box" class="track-name-box hidden">
+    <label class="track-name-label" for="track-name-input">Name</label>
+    <input id="track-name-input" type="text" maxlength="18">
+  </div>
+
   <!-- LOBBY -->
   <section id="screen-lobby" class="screen active">
     <div class="lobby-card">
@@ -52,25 +58,8 @@
       <!-- TRACK MODE -->
       <div id="mode-panel-track" class="hidden">
         <p class="tagline tagline-track">grab shoes off the belt before someone else does!! 🥵👟</p>
-        <div class="tabs">
-          <button id="track-tab-create" class="tab active">New Track</button>
-          <button id="track-tab-join" class="tab">Join Track</button>
-        </div>
-
-        <div id="track-panel-create" class="panel">
-          <label class="field-label" for="track-name-create">Your name</label>
-          <input id="track-name-create" type="text" maxlength="18" placeholder="e.g. Jordan" autocomplete="off">
-          <button id="btn-track-create" class="btn btn-primary">Create track</button>
-          <p class="panel-note">Up to 5 players can join with the code.</p>
-        </div>
-
-        <div id="track-panel-join" class="panel hidden">
-          <label class="field-label" for="track-name-join">Your name</label>
-          <input id="track-name-join" type="text" maxlength="18" placeholder="e.g. Sam" autocomplete="off">
-          <label class="field-label" for="track-code-join">Track code</label>
-          <input id="track-code-join" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
-          <button id="btn-track-join" class="btn btn-primary">Join track</button>
-        </div>
+        <div class="waiting-spinner"></div>
+        <p class="panel-note">Jumping in…</p>
       </div>
     </div>
   </section>
@@ -126,7 +115,13 @@
       <div id="track-player-list" class="track-player-list"></div>
 
       <button id="btn-track-start" class="btn btn-primary hidden">Start track</button>
-      <p class="panel-note" id="track-host-note">Need at least 2 players to start.</p>
+      <p class="panel-note" id="track-host-note">You can start solo, or wait for friends to join.</p>
+
+      <button id="btn-track-join-different" class="link-btn">Have a code? Join a different track</button>
+      <div id="track-join-inline" class="panel hidden">
+        <input id="track-join-inline-code" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
+        <button id="btn-track-join-inline-submit" class="btn btn-secondary">Join</button>
+      </div>
     </div>
   </section>
 
