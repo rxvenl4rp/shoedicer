@@ -255,6 +255,31 @@ button {
   border: 3px solid rgba(255,255,255,0.15);
 }
 .color-swatch:hover { border-color: rgba(255,255,255,0.5); }
+
+.stake-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.stake-shoe {
+  background: var(--kraft);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.stake-shoe[data-rarity="common"] { border-color: #B9AC8E; }
+.stake-shoe[data-rarity="rare"] { border-color: #3D7DFF; }
+.stake-shoe[data-rarity="epic"] { border-color: #9B5DE5; }
+.stake-shoe[data-rarity="legendary"] { border-color: #FFC93C; box-shadow: 0 0 8px rgba(255,201,60,0.5); }
+.stake-shoe.selected { outline: 3px solid var(--accent); outline-offset: 1px; }
+.stake-shoe .shoe-icon { font-size: 18px; }
+.stake-shoe .shoe-name { font-size: 12px; color: var(--text-ink); font-weight: 600; }
 .btn-pass {
   background: var(--kraft-2);
   color: var(--text-ink);
@@ -282,15 +307,10 @@ button {
   100% { transform: rotateY(1800deg) scale(1); }
 }
 
-.dice-row {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 8px;
-}
 .die {
-  width: 44px; height: 44px;
-  border-radius: 10px;
+  width: 56px; height: 56px;
+  margin: 6px auto 0;
+  border-radius: 12px;
   background: #444;
 }
 .die.rolling { animation: dieroll 1.4s steps(6, end); }
