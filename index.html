@@ -18,32 +18,64 @@
       <div class="brand">
         <span class="brand-icon">👟</span>
         <h1>SoleDuel</h1>
+      </div>
+
+      <div class="mode-tabs">
+        <button id="mode-tab-duel" class="mode-tab active">⚔️ Duel</button>
+        <button id="mode-tab-track" class="mode-tab">🥴 Brainrot Track</button>
+      </div>
+
+      <!-- DUEL MODE -->
+      <div id="mode-panel-duel">
         <p class="tagline">Call it right. Call your color. Take their kicks.</p>
+        <div class="tabs">
+          <button id="tab-create" class="tab active">New Game</button>
+          <button id="tab-join" class="tab">Join Game</button>
+        </div>
+
+        <div id="panel-create" class="panel">
+          <label class="field-label" for="name-create">Your name</label>
+          <input id="name-create" type="text" maxlength="18" placeholder="e.g. Jordan" autocomplete="off">
+          <button id="btn-create-game" class="btn btn-primary">Create game</button>
+          <p class="panel-note">You'll get a code to send your opponent.</p>
+        </div>
+
+        <div id="panel-join" class="panel hidden">
+          <label class="field-label" for="name-join">Your name</label>
+          <input id="name-join" type="text" maxlength="18" placeholder="e.g. Sam" autocomplete="off">
+          <label class="field-label" for="code-join">Game code</label>
+          <input id="code-join" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
+          <button id="btn-join-game" class="btn btn-primary">Join game</button>
+        </div>
       </div>
 
-      <div class="tabs">
-        <button id="tab-create" class="tab active">New Game</button>
-        <button id="tab-join" class="tab">Join Game</button>
-      </div>
+      <!-- TRACK MODE -->
+      <div id="mode-panel-track" class="hidden">
+        <p class="tagline tagline-track">grab shoes off the belt before someone else does!! 🥵👟</p>
+        <div class="tabs">
+          <button id="track-tab-create" class="tab active">New Track</button>
+          <button id="track-tab-join" class="tab">Join Track</button>
+        </div>
 
-      <div id="panel-create" class="panel">
-        <label class="field-label" for="name-create">Your name</label>
-        <input id="name-create" type="text" maxlength="18" placeholder="e.g. Jordan" autocomplete="off">
-        <button id="btn-create-game" class="btn btn-primary">Create game</button>
-        <p class="panel-note">You'll get a code to send your opponent.</p>
-      </div>
+        <div id="track-panel-create" class="panel">
+          <label class="field-label" for="track-name-create">Your name</label>
+          <input id="track-name-create" type="text" maxlength="18" placeholder="e.g. Jordan" autocomplete="off">
+          <button id="btn-track-create" class="btn btn-primary">Create track</button>
+          <p class="panel-note">Up to 5 players can join with the code.</p>
+        </div>
 
-      <div id="panel-join" class="panel hidden">
-        <label class="field-label" for="name-join">Your name</label>
-        <input id="name-join" type="text" maxlength="18" placeholder="e.g. Sam" autocomplete="off">
-        <label class="field-label" for="code-join">Game code</label>
-        <input id="code-join" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
-        <button id="btn-join-game" class="btn btn-primary">Join game</button>
+        <div id="track-panel-join" class="panel hidden">
+          <label class="field-label" for="track-name-join">Your name</label>
+          <input id="track-name-join" type="text" maxlength="18" placeholder="e.g. Sam" autocomplete="off">
+          <label class="field-label" for="track-code-join">Track code</label>
+          <input id="track-code-join" type="text" maxlength="5" placeholder="e.g. K7PQR" autocomplete="off" style="text-transform:uppercase">
+          <button id="btn-track-join" class="btn btn-primary">Join track</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- WAITING ROOM -->
+  <!-- WAITING ROOM (duel) -->
   <section id="screen-waiting" class="screen">
     <div class="lobby-card">
       <p class="field-label">Your game code</p>
@@ -54,7 +86,7 @@
     </div>
   </section>
 
-  <!-- GAME -->
+  <!-- GAME (duel) -->
   <section id="screen-game" class="screen">
     <header class="game-header">
       <div class="brand-small"><span class="brand-icon">👟</span> SoleDuel</div>
@@ -83,7 +115,50 @@
     </div>
   </section>
 
-  <!-- WINNER OVERLAY -->
+  <!-- TRACK LOBBY (waiting room, up to 5 players) -->
+  <section id="screen-track-lobby" class="screen">
+    <div class="lobby-card track-lobby-card">
+      <p class="field-label">Track code</p>
+      <div class="code-display" id="track-waiting-code">-----</div>
+      <button id="btn-track-copy-code" class="btn btn-secondary">Copy code</button>
+
+      <p class="field-label" style="margin-top:20px;">Players (<span id="track-player-count">0</span>/5)</p>
+      <div id="track-player-list" class="track-player-list"></div>
+
+      <button id="btn-track-start" class="btn btn-primary hidden">Start track</button>
+      <p class="panel-note" id="track-host-note">Need at least 2 players to start.</p>
+    </div>
+  </section>
+
+  <!-- TRACK GAME -->
+  <section id="screen-track-game" class="screen">
+    <header class="game-header">
+      <div class="brand-small brainrot-brand">🥴 BRAINROT TRACK</div>
+      <div class="track-timer" id="track-timer">--</div>
+    </header>
+
+    <div class="track-belt-wrap">
+      <div class="track-belt" id="track-belt"></div>
+    </div>
+
+    <div class="track-leaderboard">
+      <h3 class="log-title">Leaderboard</h3>
+      <div id="track-leaderboard-list"></div>
+    </div>
+  </section>
+
+  <!-- TRACK FINISHED OVERLAY -->
+  <div id="track-overlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-icon">🥴</div>
+      <h2>Track's over!</h2>
+      <div id="track-final-list" class="track-final-list"></div>
+      <button id="btn-track-restart" class="btn btn-primary hidden">Start another track</button>
+      <p class="panel-note" id="track-restart-note">Waiting for the host to start another track…</p>
+    </div>
+  </div>
+
+  <!-- WINNER OVERLAY (duel) -->
   <div id="winner-overlay" class="overlay hidden">
     <div class="overlay-card">
       <div class="overlay-icon">🏆</div>
@@ -103,6 +178,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="shoes.js"></script>
+<script src="firebase-init.js"></script>
+<script src="shared.js"></script>
 <script src="app.js"></script>
+<script src="track.js"></script>
 </body>
 </html>
