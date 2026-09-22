@@ -127,7 +127,7 @@ $('#btn-join-game').addEventListener('click', async () => {
       status: 'playing',
       collections: startCollections,
       turn: uids[0],
-      round: { phase: 'idle', num: 1 },
+      round: { phase: 'staking', num: 1, stakes: {}, ready: {} },
     });
 
     myName = name;
@@ -182,7 +182,7 @@ function render(data) {
 
   renderLog(data.log || {});
 
-  const round = data.round || { phase: 'idle' };
+  const round = data.round || { phase: 'staking' };
   const isMyTurn = data.turn === myUid;
   renderDuel(data, round, isMyTurn, opponentUid, players);
 
@@ -224,21 +224,26 @@ function renderLog(logObj) {
 
 function renderDuel(data, round, isMyTurn, opponentUid, players) {
   const panel = $('#duel-panel');
-  const phase = round.phase || 'idle';
+  const phase = round.phase || 'staking';
   const oppName = players[opponentUid] ? players[opponentUid].name : 'your opponent';
   const myTurnName = isMyTurn ? 'Your' : `${oppName}'s`;
 
-  $('#turn-indicator').textContent = `${myTurnName} turn — round ${round.num || 1}`;
+  $('#turn-indicator').textContent = `${myTurnName} call — round ${round.num || 1}`;
 
   if (data.status === 'finished') {
     panel.innerHTML = `<p class="duel-hint">The match is over.</p>`;
     return;
   }
 
-  if (phase === 'idle') {
+  if (phase === 'staking') {
+    renderStaking(panel, data, round, opponentUid, oppName);
+    return;
+  }
+
+  if (phase === 'coin_call') {
     if (isMyTurn) {
       panel.innerHTML = `
-        <p class="duel-hint">Call the coin.</p>
+        <p class="duel-hint">Both stakes are in. Call the coin.</p>
         <div class="call-buttons">
           <button class="btn btn-call" id="call-heads">Heads</button>
           <button class="btn btn-call" id="call-tails">Tails</button>
@@ -255,7 +260,7 @@ function renderDuel(data, round, isMyTurn, opponentUid, players) {
     const flipped = phase === 'coin_result';
     const result = round.coinResult;
     panel.innerHTML = `
-      <div class="coin ${flipped ? 'settled' : 'flipping'} ${flipped ? 'show-' + result : ''}">
+      <div class="coin ${flipped ? 'settled' : 'flipping'}">
         <span class="coin-face">${flipped ? (result === 'heads' ? 'H' : 'T') : ''}</span>
       </div>
       <p class="duel-hint">${flipped ? coinResultText(round, players) : 'Flipping…'}</p>
@@ -266,16 +271,15 @@ function renderDuel(data, round, isMyTurn, opponentUid, players) {
       colorRow.className = 'color-buttons';
       colorRow.innerHTML = COLORS.map(c =>
         `<button class="color-swatch" data-color="${c.id}" style="background:${c.hex}" title="${c.label}"></button>`
-      ).join('') + `<button class="btn btn-pass" id="btn-pass">Pass</button>`;
+      ).join('');
       panel.appendChild(colorRow);
       colorRow.querySelectorAll('.color-swatch').forEach(btn => {
         btn.addEventListener('click', () => chooseColor(btn.dataset.color));
       });
-      $('#btn-pass').addEventListener('click', () => passColor());
     } else if (flipped && round.coinWin && round.caller !== myUid) {
       const p = document.createElement('p');
       p.className = 'duel-hint';
-      p.textContent = `${oppName} is deciding whether to call a color…`;
+      p.textContent = `${oppName} is choosing a color…`;
       panel.appendChild(p);
     }
     return;
@@ -283,36 +287,11 @@ function renderDuel(data, round, isMyTurn, opponentUid, players) {
 
   if (phase === 'color_phase' || phase === 'dice_result') {
     const rolled = phase === 'dice_result';
-    const results = round.diceResults || [];
     panel.innerHTML = `
       <p class="duel-hint">${players[round.caller] ? players[round.caller].name : ''} called <b style="color:${colorHex(round.colorChoice)}">${labelFor(round.colorChoice)}</b></p>
-      <div class="dice-row">
-        ${[0, 1, 2, 3].map(i => `<div class="die ${rolled ? 'settled' : 'rolling'}" style="${rolled ? 'background:' + colorHex(results[i]) : ''}"></div>`).join('')}
-      </div>
+      <div class="die ${rolled ? 'settled' : 'rolling'}" style="${rolled ? 'background:' + colorHex(round.dieResult) : ''}"></div>
       <p class="duel-hint">${rolled ? diceOutcomeText(round) : 'Rolling…'}</p>
     `;
-    return;
-  }
-
-  if (phase === 'reject_repick') {
-    const excluded = round.rejectedColors || [];
-    panel.innerHTML = `<p class="duel-hint">${round.resolution || ''}</p>`;
-    if (round.caller === myUid) {
-      const colorRow = document.createElement('div');
-      colorRow.className = 'color-buttons';
-      colorRow.innerHTML = COLORS.filter(c => !excluded.includes(c.id)).map(c =>
-        `<button class="color-swatch" data-color="${c.id}" style="background:${c.hex}" title="${c.label}"></button>`
-      ).join('');
-      panel.appendChild(colorRow);
-      colorRow.querySelectorAll('.color-swatch').forEach(btn => {
-        btn.addEventListener('click', () => chooseColor(btn.dataset.color));
-      });
-    } else {
-      const p = document.createElement('p');
-      p.className = 'duel-hint';
-      p.textContent = `${oppName} was rejected and must call a different color…`;
-      panel.appendChild(p);
-    }
     return;
   }
 
@@ -320,6 +299,70 @@ function renderDuel(data, round, isMyTurn, opponentUid, players) {
     panel.innerHTML = `<p class="duel-hint">${round.resolution || ''}</p>`;
     return;
   }
+}
+
+function renderStaking(panel, data, round, opponentUid, oppName) {
+  const ready = round.ready || {};
+  const myReady = !!ready[myUid];
+  const oppReady = !!ready[opponentUid];
+
+  // Safety net: if both sides are ready but the phase hasn't moved on yet
+  // (e.g. both players locked in within the same instant), nudge it forward.
+  if (myReady && oppReady) {
+    gameRef.child('round/phase').set('coin_call').catch(() => {});
+  }
+
+  const myCollection = (data.collections && data.collections[myUid]) || {};
+  const myStakeKey = round.stakes && round.stakes[myUid];
+
+  if (myReady) {
+    const shoe = myStakeKey ? shoeById(myCollection[myStakeKey]) : null;
+    panel.innerHTML = `
+      <p class="duel-hint">You staked ${shoe ? shoe.name : 'a shoe'}.</p>
+      <p class="duel-hint">${oppReady ? 'Starting round…' : `Waiting for ${oppName} to stake a shoe…`}</p>
+    `;
+    return;
+  }
+
+  const keys = Object.keys(myCollection);
+  if (keys.length === 0) {
+    panel.innerHTML = `<p class="duel-hint">You have no shoes left to stake.</p>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <p class="duel-hint">Pick a shoe to put up for this round.</p>
+    <div class="stake-picker" id="stake-picker"></div>
+    <button class="btn btn-call" id="btn-lock-stake" disabled>Lock in stake</button>
+  `;
+
+  const pickerEl = panel.querySelector('#stake-picker');
+  const lockBtn = panel.querySelector('#btn-lock-stake');
+  let selected = null;
+
+  function drawPicker() {
+    pickerEl.innerHTML = keys.map((k) => {
+      const shoe = shoeById(myCollection[k]);
+      return `
+        <button class="stake-shoe ${selected === k ? 'selected' : ''}" data-key="${k}" data-rarity="${shoe.rarity}">
+          <span class="shoe-icon" style="filter: hue-rotate(${shoe.hue}deg)">👟</span>
+          <span class="shoe-name">${shoe.name}</span>
+        </button>`;
+    }).join('');
+    pickerEl.querySelectorAll('.stake-shoe').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selected = btn.dataset.key;
+        drawPicker();
+        lockBtn.disabled = false;
+      });
+    });
+  }
+  drawPicker();
+
+  lockBtn.addEventListener('click', () => {
+    lockBtn.disabled = true;
+    lockInStake(selected, opponentUid);
+  });
 }
 
 function labelFor(colorId) {
@@ -338,14 +381,9 @@ function colorHex(colorId) {
   return c ? c.hex : '#444';
 }
 function diceOutcomeText(round) {
-  const count = (round.diceResults || []).filter(c => c === round.colorChoice).length;
-  switch (round.outcome) {
-    case 'hit': return `${labelFor(round.colorChoice)} landed once — that's a hit!`;
-    case 'jackpot': return `${labelFor(round.colorChoice)} landed on all four dice — jackpot!`;
-    case 'miss': return `${labelFor(round.colorChoice)} didn't land.`;
-    case 'reject': return `${labelFor(round.colorChoice)} landed ${count} times — rejected!`;
-    default: return '';
-  }
+  return round.outcome === 'hit'
+    ? `${labelFor(round.colorChoice)} landed — that's a hit!`
+    : `${labelFor(round.colorChoice)} didn't land — instant loss.`;
 }
 
 // ---------- Colors ----------
@@ -359,9 +397,21 @@ const COLORS = [
 ];
 
 // ---------- Duel actions ----------
-// The player whose turn it is acts as the "authority" for this round: they
-// generate the random results and write them to the database. Both browsers
-// read the same final values, so both sides always agree on the outcome.
+// The player whose turn it is acts as the "authority" for coin/dice rolls:
+// they generate the random results and write them to the database. Both
+// browsers read the same final values, so both sides always agree.
+// For staking, each player writes only their own stake/ready flag.
+
+async function lockInStake(instanceKey, opponentUid) {
+  await gameRef.child(`round/stakes/${myUid}`).set(instanceKey);
+  await gameRef.child(`round/ready/${myUid}`).set(true);
+
+  const snap = await gameRef.child('round/ready').get();
+  const readyMap = snap.val() || {};
+  if (readyMap[opponentUid]) {
+    await gameRef.child('round/phase').set('coin_call');
+  }
+}
 
 async function callCoin(choice) {
   await gameRef.child('round').update({
@@ -390,11 +440,9 @@ async function finishRoundNoColor(choice, coinResult) {
   const players = data.players || {};
   const name = players[myUid] ? players[myUid].name : 'Player';
   const oppUid = Object.keys(players).find(u => u !== myUid);
-  await appendLog(`${name} called ${choice}, coin landed ${coinResult}. No color call this round.`);
-  await gameRef.child('round').update({
-    phase: 'resolved',
-    resolution: `${name} called wrong — turn passes.`,
-  });
+  const resolutionText = `${name} called ${choice}, coin landed ${coinResult}. Stakes return — turn passes.`;
+  await appendLog(resolutionText);
+  await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText });
   await advanceTurn(oppUid, data.round.num || 1);
 }
 
@@ -405,36 +453,18 @@ async function chooseColor(colorId) {
   });
 
   setTimeout(async () => {
-    const results = [0, 1, 2, 3].map(() => COLORS[Math.floor(Math.random() * COLORS.length)].id);
-    const count = results.filter(c => c === colorId).length;
-    let outcome;
-    if (count === 0) outcome = 'miss';
-    else if (count === 1) outcome = 'hit';
-    else if (count === 4) outcome = 'jackpot';
-    else outcome = 'reject'; // count is 2 or 3
-
+    const roll = COLORS[Math.floor(Math.random() * COLORS.length)].id;
+    const outcome = roll === colorId ? 'hit' : 'miss';
     await gameRef.child('round').update({
       phase: 'dice_result',
-      diceResults: results,
+      dieResult: roll,
       outcome,
     });
-    await handleDiceOutcome(colorId, outcome, results);
+    await handleDiceOutcome(colorId, outcome);
   }, 1400);
 }
 
-async function passColor() {
-  const dataSnap = await gameRef.get();
-  const data = dataSnap.val();
-  const players = data.players || {};
-  const name = players[myUid] ? players[myUid].name : 'Player';
-  const oppUid = Object.keys(players).find(u => u !== myUid);
-  await gameRef.child('round').update({ phase: 'resolved', colorChoice: null });
-  await appendLog(`${name} passed on calling a color.`);
-  await gameRef.child('round').child('resolution').set(`${name} passed — turn passes.`);
-  await advanceTurn(oppUid, data.round.num || 1);
-}
-
-async function handleDiceOutcome(colorId, outcome, results) {
+async function handleDiceOutcome(colorId, outcome) {
   const dataSnap = await gameRef.get();
   const data = dataSnap.val();
   const players = data.players || {};
@@ -442,88 +472,43 @@ async function handleDiceOutcome(colorId, outcome, results) {
   const oppUid = Object.keys(players).find(u => u !== myUid);
   const oppName = players[oppUid] ? players[oppUid].name : 'Opponent';
   const roundNum = (data.round && data.round.num) || 1;
-  const priorStreak = (data.round && data.round.rejectStreak) || 0;
-  const priorRejected = (data.round && data.round.rejectedColors) || [];
+  const stakes = (data.round && data.round.stakes) || {};
+  const myStakeKey = stakes[myUid];
+  const oppStakeKey = stakes[oppUid];
 
-  if (outcome === 'hit' || outcome === 'jackpot') {
-    const oppCollection = (data.collections && data.collections[oppUid]) || {};
-    const oppKeys = Object.keys(oppCollection);
-    let resolutionText;
-    let sweptEverything = false;
+  const winnerUid = outcome === 'hit' ? myUid : oppUid;
+  const loserUid = outcome === 'hit' ? oppUid : myUid;
+  const stakeKeyAtRisk = outcome === 'hit' ? oppStakeKey : myStakeKey;
 
-    if (outcome === 'jackpot') {
-      if (oppKeys.length) {
-        const updates = {};
-        oppKeys.forEach((k) => {
-          updates[`collections/${oppUid}/${k}`] = null;
-          updates[`collections/${myUid}/${k}`] = oppCollection[k];
-        });
-        await gameRef.update(updates);
-        resolutionText = `${labelFor(colorId)} landed on all four dice! ${name} swept ${oppName}'s entire shelf.`;
-        sweptEverything = true;
-      } else {
-        resolutionText = `${labelFor(colorId)} landed on all four dice — but ${oppName} had nothing left to take.`;
-      }
-    } else {
-      const stolenKey = pickRandomInstanceKey(oppCollection);
-      if (stolenKey) {
-        const shoe = shoeById(oppCollection[stolenKey]);
-        await gameRef.child(`collections/${oppUid}/${stolenKey}`).remove();
-        await gameRef.child(`collections/${myUid}/${stolenKey}`).set(shoe.id);
-        resolutionText = `${name} called ${labelFor(colorId)} — landed once. Took ${shoe.name} from ${oppName}!`;
-        sweptEverything = oppKeys.length === 1;
-      } else {
-        resolutionText = `${name} called ${labelFor(colorId)} and hit it, but ${oppName} has no shoes left to take.`;
-      }
-    }
+  let resolutionText;
+  const loserCollection = (data.collections && data.collections[loserUid]) || {};
+  const shoe = stakeKeyAtRisk ? shoeById(loserCollection[stakeKeyAtRisk]) : null;
 
-    await appendLog(resolutionText);
-
-    if (sweptEverything) {
-      await gameRef.update({ status: 'finished', winner: myUid });
-      await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText });
-      return;
-    }
-
-    await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText, rejectStreak: 0, rejectedColors: [] });
-    await advanceTurn(oppUid, roundNum);
-    return;
+  if (outcome === 'hit') {
+    resolutionText = shoe
+      ? `${name} called ${labelFor(colorId)} — it landed! Took ${shoe.name} from ${oppName}.`
+      : `${name} called ${labelFor(colorId)} — it landed, but the stake was already gone.`;
+  } else {
+    resolutionText = shoe
+      ? `${name} called ${labelFor(colorId)} — it didn't land. Instant loss: ${oppName} takes ${shoe.name}.`
+      : `${name} called ${labelFor(colorId)} — it didn't land. Instant loss.`;
   }
-
-  if (outcome === 'miss') {
-    const resolutionText = `${name} called ${labelFor(colorId)} — it didn't land. Turn passes.`;
-    await appendLog(resolutionText);
-    await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText, rejectStreak: 0, rejectedColors: [] });
-    await advanceTurn(oppUid, roundNum);
-    return;
-  }
-
-  // outcome === 'reject' — the called color landed twice or three times.
-  const newStreak = priorStreak + 1;
-  const newRejected = [...priorRejected, colorId];
-  const timesWord = results.filter(c => c === colorId).length === 3 ? 'three times' : 'twice';
-
-  if (newStreak >= 2) {
-    const resolutionText = `${name} called ${labelFor(colorId)} — landed ${timesWord}. Two rejects in a row — the match goes to ${oppName}!`;
-    await appendLog(resolutionText);
-    await gameRef.update({ status: 'finished', winner: oppUid });
-    await gameRef.child('round').update({
-      phase: 'resolved',
-      resolution: resolutionText,
-      rejectStreak: newStreak,
-      rejectedColors: newRejected,
-    });
-    return;
-  }
-
-  const resolutionText = `${name} called ${labelFor(colorId)} — landed ${timesWord}. Rejected — must call a different color.`;
   await appendLog(resolutionText);
-  await gameRef.child('round').update({
-    phase: 'reject_repick',
-    resolution: resolutionText,
-    rejectStreak: newStreak,
-    rejectedColors: newRejected,
-  });
+
+  if (stakeKeyAtRisk && shoe) {
+    await gameRef.child(`collections/${loserUid}/${stakeKeyAtRisk}`).remove();
+    await gameRef.child(`collections/${winnerUid}/${stakeKeyAtRisk}`).set(shoe.id);
+  }
+
+  const remainingForLoser = Object.keys(loserCollection).filter(k => k !== stakeKeyAtRisk);
+  if (stakeKeyAtRisk && shoe && remainingForLoser.length === 0) {
+    await gameRef.update({ status: 'finished', winner: winnerUid });
+    await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText });
+    return;
+  }
+
+  await gameRef.child('round').update({ phase: 'resolved', resolution: resolutionText });
+  await advanceTurn(oppUid, roundNum);
 }
 
 async function appendLog(text) {
@@ -543,7 +528,7 @@ async function appendLog(text) {
 async function advanceTurn(nextTurnUid, currentRoundNum) {
   setTimeout(async () => {
     await gameRef.update({ turn: nextTurnUid });
-    await gameRef.child('round').set({ phase: 'idle', num: (currentRoundNum || 1) + 1 });
+    await gameRef.child('round').set({ phase: 'staking', num: (currentRoundNum || 1) + 1, stakes: {}, ready: {} });
   }, 2600);
 }
 
