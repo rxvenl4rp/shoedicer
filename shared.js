@@ -29,6 +29,11 @@ function switchMode(which) {
   document.getElementById('mode-tab-track').classList.toggle('active', which === 'track');
   document.getElementById('mode-panel-duel').classList.toggle('hidden', which !== 'duel');
   document.getElementById('mode-panel-track').classList.toggle('hidden', which !== 'track');
+  if (which === 'duel') {
+    document.getElementById('track-name-box').classList.add('hidden');
+  } else if (typeof trackCode !== 'undefined' && trackCode) {
+    document.getElementById('track-name-box').classList.remove('hidden');
+  }
 }
 document.getElementById('mode-tab-duel').addEventListener('click', () => switchMode('duel'));
 document.getElementById('mode-tab-track').addEventListener('click', () => switchMode('track'));
