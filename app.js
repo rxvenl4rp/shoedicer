@@ -23,6 +23,7 @@ $('#btn-create-game').addEventListener('click', async () => {
   if (!myUid) return showToast('Still connecting — try again in a second.');
   $('#btn-create-game').disabled = true;
   try {
+    await ensureInventory(myUid);
     const code = randomCode();
     const ref = db.ref('games/' + code);
     await ref.set({
@@ -51,6 +52,7 @@ $('#btn-join-game').addEventListener('click', async () => {
   if (!myUid) return showToast('Still connecting — try again in a second.');
   $('#btn-join-game').disabled = true;
   try {
+    await ensureInventory(myUid);
     const ref = db.ref('games/' + code);
     const snap = await ref.get();
     if (!snap.exists()) {
@@ -75,14 +77,10 @@ $('#btn-join-game').addEventListener('click', async () => {
     await ref.child('players/' + myUid).set({ name, order: 1 });
     await ref.child('log').push({ text: `${name} joined the game.`, ts: Date.now() });
 
-    // Second player joining kicks off the match.
-    const startCollections = {
-      [uids[0]]: makeStartingCollection(3),
-      [myUid]: makeStartingCollection(3),
-    };
+    // Second player joining kicks off the match. Shoes come from each
+    // player's own persistent inventory, not a fresh per-match set.
     await ref.update({
       status: 'playing',
-      collections: startCollections,
       turn: uids[0],
       round: { phase: 'staking', num: 1, stakes: {}, ready: {} },
     });
@@ -97,13 +95,37 @@ $('#btn-join-game').addEventListener('click', async () => {
   }
 });
 
+let myInventory = {};
+let oppInventory = {};
+let oppInventoryUid = null;
+
 function attachToGame(code) {
   gameCode = code;
   gameRef = db.ref('games/' + code);
   $('#waiting-code').textContent = code;
+  let latestGameData = null;
+
+  db.ref('players/' + myUid + '/inventory').on('value', (snap) => {
+    myInventory = snap.val() || {};
+    if (latestGameData) render(latestGameData);
+  });
+
   gameRef.on('value', (snap) => {
     const data = snap.val();
     if (!data) return;
+    latestGameData = data;
+
+    const players = data.players || {};
+    const oppUid = Object.keys(players).find(u => u !== myUid);
+    if (oppUid && oppInventoryUid !== oppUid) {
+      if (oppInventoryUid) db.ref('players/' + oppInventoryUid + '/inventory').off();
+      oppInventoryUid = oppUid;
+      db.ref('players/' + oppUid + '/inventory').on('value', (invSnap) => {
+        oppInventory = invSnap.val() || {};
+        render(latestGameData);
+      });
+    }
+
     render(data);
   });
 }
@@ -133,9 +155,10 @@ function render(data) {
   $('#opp-name').textContent = opp ? opp.name : 'Waiting for opponent…';
   $('#game-code-badge').textContent = gameCode;
 
-  const collections = data.collections || {};
-  renderShelf($('#my-shelf'), collections[myUid] || {});
-  renderShelf($('#opp-shelf'), collections[opponentUid] || {});
+  renderShelf($('#my-shelf'), myInventory);
+  renderShelf($('#opp-shelf'), oppInventory);
+  renderIndex($('#my-index'), myInventory);
+  renderIndex($('#opp-index'), oppInventory);
 
   renderLog(data.log || {});
 
@@ -170,6 +193,35 @@ function renderShelf(el, collection) {
     `;
     el.appendChild(card);
   });
+}
+
+// A compact best-to-worst list of the same inventory, grouped by rarity —
+// so it's easy to see at a glance what's worth protecting (or targeting).
+const RARITY_ORDER = ['legendary', 'epic', 'rare', 'common'];
+function renderIndex(el, collection) {
+  const keys = Object.keys(collection);
+  if (keys.length === 0) {
+    el.innerHTML = '<p class="shelf-empty">Nothing to index.</p>';
+    return;
+  }
+  const counts = {}; // shoeId -> count
+  keys.forEach((k) => {
+    const id = collection[k];
+    counts[id] = (counts[id] || 0) + 1;
+  });
+  const rows = Object.keys(counts)
+    .map((id) => ({ shoe: shoeById(id), count: counts[id] }))
+    .filter((r) => r.shoe)
+    .sort((a, b) => RARITY_ORDER.indexOf(a.shoe.rarity) - RARITY_ORDER.indexOf(b.shoe.rarity)
+      || a.shoe.name.localeCompare(b.shoe.name));
+
+  el.innerHTML = rows.map((r) => `
+    <div class="index-row" data-rarity="${r.shoe.rarity}">
+      <span class="index-rarity">${RARITY_LABEL[r.shoe.rarity]}</span>
+      <span class="index-name">${r.shoe.name}</span>
+      ${r.count > 1 ? `<span class="index-count">×${r.count}</span>` : ''}
+    </div>
+  `).join('');
 }
 
 function renderLog(logObj) {
@@ -269,7 +321,7 @@ function renderStaking(panel, data, round, opponentUid, oppName) {
     gameRef.child('round/phase').set('coin_call').catch(() => {});
   }
 
-  const myCollection = (data.collections && data.collections[myUid]) || {};
+  const myCollection = myInventory;
   const myStakeKey = round.stakes && round.stakes[myUid];
 
   if (myReady) {
@@ -438,7 +490,7 @@ async function handleDiceOutcome(colorId, outcome) {
   const stakeKeyAtRisk = outcome === 'hit' ? oppStakeKey : myStakeKey;
 
   let resolutionText;
-  const loserCollection = (data.collections && data.collections[loserUid]) || {};
+  const loserCollection = loserUid === myUid ? myInventory : oppInventory;
   const shoe = stakeKeyAtRisk ? shoeById(loserCollection[stakeKeyAtRisk]) : null;
 
   if (outcome === 'hit') {
@@ -453,8 +505,8 @@ async function handleDiceOutcome(colorId, outcome) {
   await appendLog(resolutionText);
 
   if (stakeKeyAtRisk && shoe) {
-    await gameRef.child(`collections/${loserUid}/${stakeKeyAtRisk}`).remove();
-    await gameRef.child(`collections/${winnerUid}/${stakeKeyAtRisk}`).set(shoe.id);
+    await db.ref(`players/${loserUid}/inventory/${stakeKeyAtRisk}`).remove();
+    await db.ref(`players/${winnerUid}/inventory/${stakeKeyAtRisk}`).set(shoe.id);
   }
 
   const remainingForLoser = Object.keys(loserCollection).filter(k => k !== stakeKeyAtRisk);
