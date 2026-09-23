@@ -409,12 +409,13 @@ button:focus-visible, input:focus-visible {
 /* ---------- Mode select ---------- */
 .mode-tabs {
   display: flex;
+  justify-content: flex-start;
   gap: 8px;
   margin-bottom: 16px;
 }
 .mode-tab {
-  flex: 1;
-  padding: 10px 0;
+  flex: 0 0 auto;
+  padding: 10px 16px;
   border-radius: 10px;
   border: 2px solid var(--ink-line);
   background: transparent;
@@ -577,3 +578,31 @@ button:focus-visible, input:focus-visible {
   margin-top: 16px;
   padding: 4px;
 }
+
+/* ---------- Inventory index (best-to-worst list under each shelf) ---------- */
+.shoe-index {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+.index-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--text-lo);
+}
+.index-rarity {
+  flex: 0 0 66px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.index-row[data-rarity="common"] .index-rarity { color: #B9AC8E; }
+.index-row[data-rarity="rare"] .index-rarity { color: #3D7DFF; }
+.index-row[data-rarity="epic"] .index-rarity { color: #9B5DE5; }
+.index-row[data-rarity="legendary"] .index-rarity { color: #FFC93C; }
+.index-name { flex: 1; color: var(--text-hi); }
+.index-count { color: var(--text-lo); font-size: 11px; }
