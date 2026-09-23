@@ -23,7 +23,21 @@ function randomCode() {
   return code;
 }
 
-// ---------- Mode select (top of the lobby screen) ----------
+// ---------- Shared inventory ----------
+// Both game modes share one persistent shoe inventory per player, keyed to
+// their Firebase anonymous uid (stable for that browser). Shoes earned in
+// Brainrot Track carry straight over into what you can stake in a Duel.
+async function ensureInventory(uid) {
+  const ref = db.ref('players/' + uid + '/inventory');
+  const snap = await ref.get();
+  if (!snap.exists()) {
+    // Firebase drops a node once its last child is removed, so an empty
+    // inventory (e.g. after losing everything in a duel) will also be
+    // missing here — this naturally re-grants a fresh starter set.
+    await ref.set(makeStartingCollection(3));
+  }
+  return ref;
+}
 function switchMode(which) {
   document.getElementById('mode-tab-duel').classList.toggle('active', which === 'duel');
   document.getElementById('mode-tab-track').classList.toggle('active', which === 'track');
