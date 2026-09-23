@@ -43,6 +43,7 @@ async function quickStartTrack() {
   }
   trackName = generateRandomName();
   try {
+    await ensureInventory(myUid);
     const code = randomCode();
     const ref = db.ref('trackGames/' + code);
     await ref.set({
@@ -62,6 +63,7 @@ async function joinTrackByCode(code) {
   if (!code) return showToast('Enter a track code.');
   if (!myUid) return showToast('Still connecting — try again in a second.');
   try {
+    await ensureInventory(myUid);
     const ref = db.ref('trackGames/' + code);
     const snap = await ref.get();
     if (!snap.exists()) {
@@ -378,7 +380,11 @@ async function grabSpawn(spawnId, shoeTypeId, el) {
 
     if (result.committed && result.snapshot.val() === myUid) {
       const instanceId = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      // Session collection (drives this round's leaderboard)...
       await trackGameRef.child(`collections/${myUid}/${instanceId}`).set(shoeTypeId);
+      // ...and the same shoe also lands in your permanent inventory, so it
+      // carries over into Duel mode.
+      await db.ref(`players/${myUid}/inventory/${instanceId}`).set(shoeTypeId);
       el.classList.add('grabbed-mine');
     } else {
       showToast('Too slow!');
